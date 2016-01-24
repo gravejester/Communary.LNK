@@ -689,13 +689,18 @@ function Read-ExtraData {
     $extraDataBlock = New-Object -TypeName System.Collections.ArrayList
 
     while ($Reader.BaseStream.Position -lt $Reader.BaseStream.Length) {
+        
+        # BlockSize (4 bytes)
         $extraBlockSize = $Reader.ReadUInt32()
         if ($extraBlockSize -lt 4) {
             break
         }
+
+        # BlockSignature (4 bytes)
         [ExtraDataBlockSignature]$extraBlockSignature = $Reader.ReadUInt32()
-        #$extraBlockSignature = $Reader.ReadUInt32()
         Write-Verbose "EXTRA_DATA: Block Signature: $extraBlockSignature"
+
+        # Block Data (variable)
         $extraBlockData = $Reader.ReadBytes(($extraBlockSize - 8))
         
         $extraDataBlock.Add(([PSCustomObject] [Ordered] @{
