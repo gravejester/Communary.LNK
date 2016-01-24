@@ -680,6 +680,32 @@ function Read-StringData {
 }
 
 function Read-ExtraData {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.IO.BinaryReader] $Reader
+    )
+
+    $extraDataBlock = New-Object -TypeName System.Collections.ArrayList
+
+    while ($Reader.BaseStream.Position -lt $Reader.BaseStream.Length) {
+        $extraBlockSize = $Reader.ReadUInt32()
+        if ($extraBlockSize -lt 4) {
+            break
+        }
+        [ExtraDataBlockSignature]$extraBlockSignature = $Reader.ReadUInt32()
+        #$extraBlockSignature = $Reader.ReadUInt32()
+        Write-Verbose "EXTRA_DATA: Block Signature: $extraBlockSignature"
+        $extraBlockData = $Reader.ReadBytes(($extraBlockSize - 8))
+        
+        $extraDataBlock.Add(([PSCustomObject] [Ordered] @{
+            BlockSize = $extraBlockSize
+            BlockSignature = $extraBlockSignature
+            Data = $extraBlockData
+        }))
+    }
+
+    Write-Output $extraDataBlock
 }
 
 function Get-LNKData {
@@ -698,6 +724,8 @@ function Get-LNKData {
             # open filestream and initialize binary reader
             $fileStream = New-Object -TypeName System.IO.FileStream -ArgumentList ($resolvedPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read)
             $fileReader = New-Object -TypeName System.IO.BinaryReader -ArgumentList $fileStream
+            Write-Verbose "$resolvedPath opened"
+            Write-Verbose "Total length: $($fileReader.BaseStream.Length)"
 
             # SHELL_LINK_HEADER
             $shellLinkHeader = Read-ShellLinkHeader -Reader $fileReader -Verbose:$VerbosePreference
@@ -752,6 +780,15 @@ function Get-LNKData {
             }
 
             # EXTRA_DATA
+            if ($fileReader.BaseStream.Position -lt $fileReader.BaseStream.Length) {
+                $extraData = Read-ExtraData -Reader $fileReader
+            }
+            else {
+                Write-Verbose 'No Extra Data found'
+            }
+
+            Write-Verbose "Position at end: $($fileReader.BaseStream.Position)"
+            
 
             Write-Output ([PSCustomObject] [Ordered] @{
                 ShellLinkHeader = $shellLinkHeader
