@@ -6,32 +6,104 @@ Add-Type -TypeDefinition @'
 public enum LinkFlags : uint
 {
     None = 0,
+
+    // The shell link is saved with an item ID list (IDList). 
+    // If this bit is set, a LinkTargetIDList structure MUST follow the ShellLinkHeader. 
+    // If this bit is not set, this structure MUST NOT be present.
     HasLinkTargetIDList = 1,
+
+    // The shell link is saved with link information. 
+    // If this bit is set, a LinkInfo structure MUST be present. 
+    // If this bit is not set, this structure MUST NOT be present.
     HasLinkInfo = 2,
+
+    // The shell link is saved with a name string. 
+    // If this bit is set, a NAME_STRING StringData structure MUST be present. 
+    // If this bit is not set, this structure MUST NOT be present.
     HasName = 4,
+
+    // The shell link is saved with a relative path string. 
+    // If this bit is set, a RELATIVE_PATH StringData structure MUST be present. 
+    // If this bit is not set, this structure MUST NOT be present.
     HasRelativePath = 8,
+
+    // The shell link is saved with a working directory string. 
+    // If this bit is set, a WORKING_DIR StringData structure MUST be present. 
+    // If this bit is not set, this structure MUST NOT be present.
     HasWorkingDir = 16,
+
+    // The shell link is saved with command line arguments. 
+    // If this bit is set, a COMMAND_LINE_ARGUMENTS StringData structure MUST be present. 
+    // If this bit is not set, this structure MUST NOT be present.
     HasArguments = 32,
+
+    // The shell link is saved with an icon location string. 
+    // If this bit is set, an ICON_LOCATION StringData structure MUST be present. 
+    // If this bit is not set, this structure MUST NOT be present.
     HasIconLocation = 64,
+
+    // The shell link contains Unicode encoded strings. 
+    // This bit SHOULD be set. If this bit is set, the StringData section should contain Unicode-encoded strings; 
+    // otherwise, it should contain strings that are encoded using the system default code page.
     IsUnicode = 128,
+
+    // The LinkInfo structure is ignored.
     ForceNoLinkInfo = 256,
+
+    // The shell link is saved with an EnvironmentVariableDataBlock.
     HasExpString = 512,
+
+    // The target is run in a separate virtual machine when launching a link target that is a 16-bit application.
     RunInSeparateProcess = 1024,
+
+    // A bit that is undefined and MUST be ignored.
     Unused1 = 2048,
+
+    // The shell link is saved with a DarwinDataBlock.
     HasDarwinID = 4096,
+
+    // The application is run as a different user when the target of the shell link is activated.
     RunAsUser = 8192,
+
+    // The shell link is saved with an IconEnvironmentDataBlock.
     HasExpIcon = 16384,
+
+    // The file system location is represented in the shell namespace when the path to an item is parsed into an IDList.
     NoPidlAlias = 32768,
+
+    // A bit that is undefined and MUST be ignored.
     Unused2 = 65536,
+
+    // The shell link is saved with a ShimDataBlock.
     RunWithShimLayer = 131072,
+
+    // The TrackerDataBlock is ignored.
     ForceNoLinkTrack = 262144,
+
+    // The shell link attempts to collect target properties and store them in the PropertyStoreDataBlock when the link target is set.
     EnableTargetMetaData = 524288,
+
+    // The EnvironmentVariableDataBlock is ignored.
     DisableLinkPathTracking = 1048576,
+
+    // The SpecialFolderDataBlock and the KnownFolderDataBlock are ignored when loading the shell link. 
+    // If this bit is set, these extra data blocks SHOULD NOT be saved when saving the shell link.
     DisableKnownFolderTracking = 2097152,
+
+    // If the link has a KnownFolderDataBlock, the unaliased form of the known folder IDList SHOULD be used when translating the target IDList at the time that the link is loaded.
     DisableKnownFolderAlias = 4194304,
+
+    // Creating a link that references another link is enabled. Otherwise, specifying a link as the target IDList SHOULD NOT be allowed.
     AllowLinkToLink = 8388608,
+
+    // When saving a link for which the target IDList is under a known folder, either the unaliased form of that known folder or the target IDList SHOULD be used.
     UnAliasOnSave = 16777216,
+
+    // The target IDList SHOULD NOT be stored; instead, the path specified in the EnvironmentVariableDataBlock SHOULD be used to refer to the target.
     PreferEnvironmentPath = 33554432,
+
+    // When the target is a UNC name that refers to a location on a local machine, the local path IDList in the PropertyStoreDataBlock SHOULD be stored, 
+    // so it can be used when the link is loaded on the local machine.
     KeepLocalIDListForUNCTarget = 67108864,
 }
 
@@ -67,22 +139,6 @@ public enum CommonNetworkRelativeLinkFlags : uint
     None = 0,
     ValidDevice = 1,
     ValidNetType = 2,
-}
-
-public enum ExtraDataBlockSignature : uint
-{
-    UnknownDataBlock = 0,
-    ConsoleDataBlock = 0xA0000002,
-    ConsoleFEDataBlock = 0xA0000004,
-    DarwinDataBlock = 0xA0000006,
-    EnvironmentVariableDataBlock = 0xA0000001,
-    IconEnvironmentDataBlock = 0xA0000007,
-    KnownFolderDataBlock = 0xA000000B,
-    PropertyStoreDataBlock = 0xA0000009,
-    ShimDataBlock = 0xA0000008,
-    SpecialFolderDataBlock = 0xA0000005,
-    TrackerDataBlock = 0xA0000003,
-    VistaAndAboveIDListDataBlock = 0xA000000C,
 }
 
 public enum NetworkProviderType : uint
@@ -129,7 +185,25 @@ public enum NetworkProviderType : uint
     MsNfs = 0x420000,
     Google = 0x43000,
 }
+
+public enum ExtraDataBlockSignature: uint
+{
+    UnknownDataBlock = 0,
+    ConsoleDataBlock = 2684354562,
+    ConsoleFEDataBlock = 2684354564,
+    DarwinDataBlock = 2684354566,
+    EnvironmentVariableDataBlock = 2684354561,
+    IconEnvironmentDataBlock = 2684354567,
+    KnownFolderDataBlock = 2684354571,
+    PropertyStoreDataBlock = 2684354569,
+    ShimDataBlock = 2684354568,
+    SpecialFolderDataBlock = 2684354565,
+    TrackerDataBlock = 2684354563,
+    VistaAndAboveIDListDataBlock = 2684354572,
+}
 '@
+
+Add-Type -AssemblyName System.Windows.Forms
 
 function Read-ShellLinkHeader {
     [CmdletBinding()]
@@ -630,6 +704,12 @@ function Get-LNKData {
         }
         catch {
             Write-Warning $_.Exception.Message
+        }
+        finally {
+            $fileReader.Close()
+            $fileReader.Dispose()
+            $fileStream.Close()
+            $fileStream.Dispose()
         }
     }
     else {
