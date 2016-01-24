@@ -109,8 +109,13 @@ public enum LinkFlags : uint
 
 public enum ShowCommand : uint
 {
+    // The application is open and its window is open in a normal fashion.
     Normal = 1,
+
+    // The application is open, and keyboard focus is given to the application, but its window is not shown.
     MinimizedNoActive = 7,
+
+    // The application is open, but its window is not shown. It is not given the keyboard focus.
     Maximized = 3,
 }
 
@@ -118,18 +123,41 @@ public enum ShowCommand : uint
 public enum LinkInfoFlags : uint
 {
     None = 0,
+
+    // If set, the VolumeID and LocalBasePath fields are present, and their locations are specified by the values of the VolumeIDOffset and LocalBasePathOffset fields, respectively. 
+    // If the value of the LinkInfoHeaderSize field is greater than or equal to 0x00000024, the LocalBasePathUnicode field is present, and its location is specified by the value of 
+    // the LocalBasePathOffsetUnicode field. 
+    //
+    // If not set, the VolumeID, LocalBasePath, and LocalBasePathUnicode fields are not present, and the values of the VolumeIDOffset and LocalBasePathOffset fields are zero. 
+    // If the value of the LinkInfoHeaderSize field is greater than or equal to 0x00000024, the value of the LocalBasePathOffsetUnicode field is zero.
     VolumeIDAndLocalBasePath = 1,
+
+    // If set, the CommonNetworkRelativeLink field is present, and its location is specified by the value of the CommonNetworkRelativeLinkOffset field. 
+    // If not set, the CommonNetworkRelativeLink field is not present, and the value of the CommonNetworkRelativeLinkOffset field is zero.
     CommonNetworkRelativeLinkAndPathSuffix = 2,
 }
 
 public enum VolumeDriveType
 {
+    // The drive type cannot be determined.
     Unknown = 0,
+
+    // The root path is invalid; for example, there is no volume mounted at the path.
     NoRootDir = 1,
+
+    // The drive has removable media, such as a floppy drive, thumb drive, or flash card reader.
     Removable = 2,
+
+    // The drive has fixed media, such as a hard drive or flash drive.
     Fixed = 3,
+
+    // The drive is a remote (network) drive.
     Remote = 4,
+
+    // The drive is a CD-ROM drive.
     CDROM = 5,
+
+    // The drive is a RAM disk.
     RAMDisk = 6
 }
 
@@ -137,7 +165,13 @@ public enum VolumeDriveType
 public enum CommonNetworkRelativeLinkFlags : uint
 {
     None = 0,
+
+    // If set, the DeviceNameOffset field contains an offset to the device name. 
+    // If not set, the DeviceNameOffset field does not contain an offset to the device name, and its value MUST be zero.
     ValidDevice = 1,
+
+    // If set, the NetProviderType field contains the network provider type. 
+    // If not set, the NetProviderType field does not contain the network provider type, and its value MUST be zero.
     ValidNetType = 2,
 }
 
@@ -189,16 +223,42 @@ public enum NetworkProviderType : uint
 public enum ExtraDataBlockSignature: uint
 {
     UnknownDataBlock = 0,
+
+    // The ConsoleDataBlock structure specifies the display settings to use when a link target specifies an application that is run in a console window.
     ConsoleDataBlock = 2684354562,
+
+    // The ConsoleFEDataBlock structure specifies the code page to use for displaying text when a link target specifies an application that is run in a console window.
     ConsoleFEDataBlock = 2684354564,
+
+    // The DarwinDataBlock structure specifies an application identifier that can be used instead of a link target IDList to install an application when a shell link is activated.
     DarwinDataBlock = 2684354566,
+
+    // The EnvironmentVariableDataBlock structure specifies a path to environment variable information when the link target refers to a location that has a corresponding environment variable.
     EnvironmentVariableDataBlock = 2684354561,
+
+    // The IconEnvironmentDataBlock structure specifies the path to an icon. 
+    // The path is encoded using environment variables, which makes it possible to find the icon across machines where the locations vary but are expressed using environment variables.
     IconEnvironmentDataBlock = 2684354567,
+
+    // The KnownFolderDataBlock structure specifies the location of a known folder. 
+    // This data can be used when a link target is a known folder to keep track of the folder so that the link target IDList can be translated when the link is loaded.
     KnownFolderDataBlock = 2684354571,
+
+    // A PropertyStoreDataBlock structure specifies a set of properties that can be used by applications to store extra data in the shell link.
     PropertyStoreDataBlock = 2684354569,
+
+    // The ShimDataBlock structure specifies the name of a shim that can be applied when activating a link target.
     ShimDataBlock = 2684354568,
+
+    // The SpecialFolderDataBlock structure specifies the location of a special folder. 
+    // This data can be used when a link target is a special folder to keep track of the folder, so that the link target IDList can be translated when the link is loaded.
     SpecialFolderDataBlock = 2684354565,
+
+    // The TrackerDataBlock structure specifies data that can be used to resolve a link target if it is not found in its original location when the link is resolved. 
+    // This data is passed to the Link Tracking service to find the link target.
     TrackerDataBlock = 2684354563,
+
+    // The VistaAndAboveIDListDataBlock structure specifies an alternate IDList that can be used instead of the LinkTargetIDList structure on platforms that support it.
     VistaAndAboveIDListDataBlock = 2684354572,
 }
 '@
