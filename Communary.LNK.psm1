@@ -361,6 +361,52 @@ function Read-LinkTargetIDList {
         Write-Verbose 'LINKTARGET_IDLIST: IDList item found'
         $itemIDSize = $Reader.ReadUInt16()        
         $itemIDData = $Reader.ReadBytes(($itemIDSize - 2))
+
+        # let's try to parse the itemID data
+        $signatureByte = $itemIDData.GetValue(0)
+        Write-Verbose "LINKTARGET_IDLIST >> ITEMID: Signature Byte: $signatureByte"
+        switch ($signatureByte) {
+            31 {
+                [byte[]]$guidBytes = $itemIDData[2..($itemIDData.count)]
+                $guid = [System.Guid]::new($guidBytes)
+                $guidLookup = Get-ItemProperty "Registry::HKEY_CLASSES_ROOT\CLSID\{$guid}" | Select-Object -ExpandProperty '(default)'
+                Write-Verbose "LINKTARGET_IDLIST >> ITEMID: GUID: $guid"
+                Write-Verbose "LINKTARGET_IDLIST >> ITEMID: GUID lookup: $guidLookup"
+            }
+            # root (volume)
+            47 {
+                $rootBytes = $itemIDData[1..($itemIDData.count)]
+                [string]$rootString = [System.Text.Encoding]::Default.GetString($rootBytes)
+                Write-Verbose "LINKTARGET_IDLIST >> ITEMID: Root String: '$($rootString.Trim([char]0))'"
+                #Write-Verbose "LINKTARGET_IDLIST >> ITEMID: Root Bytes: '$($rootBytes)'"
+            }
+            # folder
+            49 {
+                #Write-Verbose "$itemIDData"
+                $itemFlag = $itemIDData[1] # 1 byte
+                Write-Verbose "Item Flag: $itemFlag"
+                $itemFileSize = $itemIDData[2..5] # 4 bytes
+                Write-Verbose "File Size: $([System.BitConverter]::ToUInt32($itemFileSIze,0))"
+                $itemLastModified = $itemIDData[6..9] # 4 bytes
+                $itemFileAttributes = $itemIDData[1..11] # 2 bytes
+                $itemShortName = $itemIDData[12..21] # 10 bytes
+                Write-Verbose "$([char[]]$itemShortName -join '')"
+                $itemExtensionSize = $itemIDData[22..23] # 2 bytes
+                Write-Verbose "Extension Size: $([System.BitConverter]::ToUInt16($itemExtensionSize,0))"
+                $itemExtensionVersion = $itemIDData[24..25] # 2 bytes
+                # skip 4 unknown bytes
+                $itemCreationTime = $itemIDData[30..33] # 4 bytes
+                $itemLastAccess = $itemIDData[34..37] # 4 bytes
+                # skip 4 unknown bytes
+                $itemLongName = $itemIDData[42..61]  # 20 bytes
+                Write-Verbose "$($itemIDData[42..61])"
+                Write-Verbose "$([char[]]$itemLongName -join '')" # <- this is not right, we are missing some bytes before this ,start position is wrong.
+            }
+            # file
+            50 {
+            }
+        }
+
         [void]$IDList.Add($itemIDData)
     }
 
@@ -369,6 +415,7 @@ function Read-LinkTargetIDList {
     Write-Output ([PSCustomObject] [Ordered] @{
         IDListSize = $IDListSize
         IDList = $IDList
+        TerminalID = $terminalID
     })
 
     $linkTargetIDListEnd = $Reader.BaseStream.Position
@@ -492,6 +539,7 @@ function Read-LinkInfo {
             # TODO!
         }
         $volumeLabelData = $Reader.ReadBytes($volumeIDDataSize)
+        $volumeLabel = [System.Text.Encoding]::Default.GetString($volumeLabelData)
 
         $volumeID = [PSCustomObject] [Ordered] @{
             VolumeIDSize = $volumeIDSize
@@ -499,7 +547,7 @@ function Read-LinkInfo {
             DriveSerialNumber = $driveSerialNumber
             VolumeLabelOffset = $volumeLabelOffset
             VolumeLabelOffsetUnicode = $volumeLabelOffsetUnicode
-            Data = $volumeLabelData
+            Data = $volumeLabel
         }
     }
 
@@ -514,7 +562,8 @@ function Read-LinkInfo {
             $locaBasePathSize = $commonPathSuffixStartPosition - $localBasePathStartsAt
         }
         Write-Verbose "LINKINFO: Local Base Path size: $locaBasePathSize"
-        $localBasePath = $Reader.ReadBytes($locaBasePathSize)
+        $localBasePathBytes = $Reader.ReadBytes($locaBasePathSize)
+        $localBasePath = [System.Text.Encoding]::Default.GetString($localBasePathBytes)
     }
 
     # CommonNetworkRelativeLink (structure)
@@ -615,7 +664,8 @@ function Read-LinkInfo {
     $commonPathSuffixStartsAt = $Reader.BaseStream.Position
     Write-Verbose "LINKINFO: Common Path Suffix starting at $commonPathSuffixStartsAt"
     $commonPathSuffixSize = $linkInfoEndsAt - $commonPathSuffixStartsAt
-    $commonPathSuffix = $Reader.ReadBytes($commonPathSuffixSize)
+    $commonPathSuffixBytes = $Reader.ReadBytes($commonPathSuffixSize)
+    $commonPathSuffix = [System.Text.Encoding]::Default.GetString($commonPathSuffixBytes)
 
     # LocalBasePathUnicode (variable)
     if (($linkInfoFlags.HasFlag([LinkInfoFlags]::VolumeIDAndLocalBasePath)) -and ($linkInfoHeaderSize -ge 36)) {
